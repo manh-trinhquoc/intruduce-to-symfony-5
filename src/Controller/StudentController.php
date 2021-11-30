@@ -43,4 +43,14 @@ class StudentController extends AbstractController
         ];
         return $this->render($template, $args);
     }
+
+    /**
+    * @Route("/student/create/{firstName}/{surname}")
+    */
+    public function create($firstName, $surname)
+    {
+        $student = new Student();
+        $student->setFirstName($firstName);
+        $student->setSurname($surname);
+    }
 }
