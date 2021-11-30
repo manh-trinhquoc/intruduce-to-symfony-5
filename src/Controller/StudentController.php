@@ -7,9 +7,43 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Entity\Student;
 use App\Repository\StudentRepository;
+use Symfony\Component\HttpFoundation\Request;
 
 class StudentController extends AbstractController
 {
+    /**
+    * @Route("/student/new", name="student_new_form")
+    */
+    public function newForm()
+    {
+        $template = 'student/new.html.twig';
+        $args = [
+        ];
+        return $this->render($template, $args);
+    }
+
+    /**
+    * @Route("/student/processNewForm", name="student_process_new_form")
+    */
+    public function processNewFormAction(Request $request)
+    {
+        // extract name values from POST data
+        $firstName = $request->request->get('firstName');
+        // var_dump($request->request);
+        $surname = $request->request->get('surname');
+        $isValid = !empty($firstName) && !empty($surname);
+        
+        if (!$isValid) {
+            $this->addFlash(
+                'error',
+                'student firstName/surname cannot be an empty string'
+            );
+            return $this->newForm();
+        }
+        // forward this to the createAction() method
+        return $this->create($firstName, $surname);
+    }
+    
     /**
      * @Route("/student", name="student_list")
      */
@@ -17,7 +51,7 @@ class StudentController extends AbstractController
     {
         $studentRepository = $this->getDoctrine()->getRepository('App:Student');
         $students = $studentRepository->findAll();
-
+        
         $template = 'student/list.html.twig';
 
         $args = [
@@ -46,7 +80,7 @@ class StudentController extends AbstractController
     /**
     * @Route("/student/create/{firstName}/{surname}")
     */
-    public function create($firstName, $surname)
+    private function create($firstName, $surname)
     {
         $student = new Student();
         $student->setFirstName($firstName);
@@ -54,6 +88,8 @@ class StudentController extends AbstractController
         $em = $this->getDoctrine()->getManager();
         $em->persist($student);
         $em->flush();
+        return $this->redirectToRoute('student_list');
+
         return $this->redirectToRoute('student_show', [
             'id' => $student->getId()
         ]);
