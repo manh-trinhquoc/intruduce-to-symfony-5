@@ -6,42 +6,36 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Entity\Student;
-use App\Repository\StudentRepository;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 
 class StudentController extends AbstractController
 {
     /**
-    * @Route("/student/new", name="student_new_form")
+    * @Route("/student/new", name="student_new_form", methods={"POST", "GET"})
     */
-    public function newForm()
+    public function new(Request $request)
     {
+        $student = new Student();
+        // create a form with 'firstName' and 'surname' text fields
+        $form = $this->createFormBuilder($student)
+            ->add('firstName', TextType::class)
+            ->add('surname', TextType::class)
+            ->add('save', SubmitType::class, array('label' => 'Create Student'))
+            ->getForm();
+        // if was POST submission, extract data and put into '$student'
+        $form->handleRequest($request);
+        // if SUBMITTED & VALID - go ahead and create new object
+        if ($form->isSubmitted() && $form->isValid()) {
+            return $this->createAction($student);
+        }
+        
         $template = 'student/new.html.twig';
         $args = [
+            'form' => $form->createView(),
         ];
         return $this->render($template, $args);
-    }
-
-    /**
-    * @Route("/student/processNewForm", name="student_process_new_form")
-    */
-    public function processNewFormAction(Request $request)
-    {
-        // extract name values from POST data
-        $firstName = $request->request->get('firstName');
-        // var_dump($request->request);
-        $surname = $request->request->get('surname');
-        $isValid = !empty($firstName) && !empty($surname);
-        
-        if (!$isValid) {
-            $this->addFlash(
-                'error',
-                'student firstName/surname cannot be an empty string'
-            );
-            return $this->newForm();
-        }
-        // forward this to the createAction() method
-        return $this->create($firstName, $surname);
     }
     
     /**
@@ -94,6 +88,13 @@ class StudentController extends AbstractController
             'id' => $student->getId()
         ]);
         return new Response('Created new student with id '.$student->getId());
+    }
+    public function createAction(Student $student)
+    {
+        $em = $this->getDoctrine()->getManager();
+        $em->persist($student);
+        $em->flush();
+        return $this->redirectToRoute('student_list');
     }
 
     /**
